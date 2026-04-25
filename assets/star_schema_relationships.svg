@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="850" viewBox="0 0 1400 850">
+  <style>
+    text{font-family:Arial, sans-serif; fill:#111} .title{font-size:24px;font-weight:bold}.box-title{font-size:17px;font-weight:bold}.body{font-size:14px}.box{fill:#f8f9fa;stroke:#222;stroke-width:2}.fact{fill:#eef5ff;stroke:#222;stroke-width:2}.line{stroke:#222;stroke-width:2;marker-end:url(#arrow)}
+  </style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#222"/></marker></defs>
+  <text x="40" y="45" class="title">CityPulse Warehouse Star Schema: Relationships, Keys, and Grain</text>
+  <rect x="480" y="280" width="430" height="300" rx="10" class="fact"/>
+  <text x="500" y="315" class="box-title">warehouse.fact_service_requests</text>
+  <text x="500" y="350" class="body">Grain: 1 row per service request event</text>
+  <text x="500" y="375" class="body">PK: request_id</text>
+  <text x="500" y="400" class="body">FK: date_key → dim_date</text>
+  <text x="500" y="425" class="body">FK: location_key → dim_location</text>
+  <text x="500" y="450" class="body">FK: request_type_key → dim_request_type</text>
+  <text x="500" y="475" class="body">FK: status_key → dim_status</text>
+  <text x="500" y="500" class="body">Measures: request_count, resolution_hours</text>
+  <text x="500" y="525" class="body">Flags: is_closed, priority_flag</text>
+
+  <rect x="60" y="100" width="350" height="170" rx="10" class="box"/>
+  <text x="80" y="135" class="box-title">warehouse.dim_date</text>
+  <text x="80" y="170" class="body">PK: date_key</text><text x="80" y="195" class="body">date_value, year, month, day</text><text x="80" y="220" class="body">day_name, day_of_week, is_weekend</text>
+  <rect x="990" y="100" width="350" height="170" rx="10" class="box"/>
+  <text x="1010" y="135" class="box-title">warehouse.dim_location</text>
+  <text x="1010" y="170" class="body">PK: location_key</text><text x="1010" y="195" class="body">borough</text><text x="1010" y="220" class="body">SCD2 example: valid_from / valid_to</text>
+  <rect x="60" y="620" width="350" height="170" rx="10" class="box"/>
+  <text x="80" y="655" class="box-title">warehouse.dim_request_type</text>
+  <text x="80" y="690" class="body">PK: request_type_key</text><text x="80" y="715" class="body">request_type</text><text x="80" y="740" class="body">normalizes complaint categories</text>
+  <rect x="990" y="620" width="350" height="170" rx="10" class="box"/>
+  <text x="1010" y="655" class="box-title">warehouse.dim_status</text>
+  <text x="1010" y="690" class="body">PK: status_key</text><text x="1010" y="715" class="body">status</text><text x="1010" y="740" class="body">open/closed/pending grouping input</text>
+
+  <line x1="410" y1="185" x2="480" y2="350" class="line"/><text x="412" y="260" class="body">date_key</text>
+  <line x1="990" y1="185" x2="910" y2="350" class="line"/><text x="925" y="260" class="body">location_key</text>
+  <line x1="410" y1="705" x2="480" y2="510" class="line"/><text x="390" y="610" class="body">request_type_key</text>
+  <line x1="990" y1="705" x2="910" y2="510" class="line"/><text x="930" y="610" class="body">status_key</text>
+  <text x="450" y="645" class="body">All marts aggregate from this same event-level fact grain to avoid metric drift.</text>
+</svg>

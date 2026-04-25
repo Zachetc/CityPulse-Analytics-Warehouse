@@ -1,14 +1,6 @@
 # Incremental Load Strategy
 
-The warehouse includes an incremental fact load example in:
-
-```text
-sql/incremental/load_fact_incremental.sql
-```
-
-## Strategy
-
-The pipeline treats `request_id` as the natural event identifier. During incremental loads, a service request is inserted only if it does not already exist in `warehouse.fact_service_requests`.
+The incremental example uses `request_id` as the de-duplication key.
 
 ```sql
 WHERE NOT EXISTS (
@@ -18,10 +10,6 @@ WHERE NOT EXISTS (
 )
 ```
 
-## Why this is useful
+This protects the event-level fact table from duplicate inserts when the same upstream ETL records are processed again. It is a simple append-safe strategy suitable for explaining the concept without hiding the logic inside an orchestration framework.
 
-A full rebuild is simple for a small academic dataset, but an incremental load pattern is more realistic for operational systems because it avoids reprocessing all history every time the pipeline refreshes.
-
-## Current limitation
-
-This implementation handles new records. A more advanced version would also handle updates to existing open requests, such as a request moving from `Open` to `Closed`.
+Known limitation: this does not handle late-arriving corrections to previously loaded records. A future version could add an upsert/merge pattern.

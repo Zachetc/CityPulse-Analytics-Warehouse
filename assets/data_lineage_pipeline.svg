@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+  <style>text{font-family:Arial,sans-serif;fill:#111}.title{font-size:24px;font-weight:bold}.box-title{font-size:17px;font-weight:bold}.body{font-size:14px}.box{fill:#f8f9fa;stroke:#222;stroke-width:2}.line{stroke:#222;stroke-width:2;marker-end:url(#arrow)}</style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#222"/></marker></defs>
+  <text x="40" y="45" class="title">Data Lineage: CityPulse ETL Output to Warehouse Marts</text>
+  <rect x="60" y="170" width="260" height="150" rx="10" class="box"/><text x="80" y="205" class="box-title">CityPulse ETL repo</text><text x="80" y="240" class="body">Python ingestion + cleaning</text><text x="80" y="265" class="body">Loads public.service_requests</text>
+  <rect x="410" y="170" width="280" height="150" rx="10" class="box"/><text x="430" y="205" class="box-title">staging.service_requests</text><text x="430" y="240" class="body">typed warehouse copy</text><text x="430" y="265" class="body">standardized names + indexes</text>
+  <rect x="780" y="90" width="280" height="150" rx="10" class="box"/><text x="800" y="125" class="box-title">warehouse.dim_*</text><text x="800" y="160" class="body">date, location, type, status</text><text x="800" y="185" class="body">surrogate keys</text>
+  <rect x="780" y="360" width="280" height="150" rx="10" class="box"/><text x="800" y="395" class="box-title">warehouse.fact_service_requests</text><text x="800" y="430" class="body">event-level grain</text><text x="800" y="455" class="body">measures + dimension keys</text>
+  <rect x="1150" y="230" width="220" height="160" rx="10" class="box"/><text x="1170" y="265" class="box-title">marts.*</text><text x="1170" y="300" class="body">monthly volume</text><text x="1170" y="325" class="body">response time</text><text x="1170" y="350" class="body">priority/backlog</text>
+  <line x1="320" y1="245" x2="410" y2="245" class="line"/><text x="335" y="230" class="body">data contract</text>
+  <line x1="690" y1="245" x2="780" y2="165" class="line"/><text x="700" y="180" class="body">dimension build</text>
+  <line x1="690" y1="245" x2="780" y2="435" class="line"/><text x="700" y="350" class="body">fact build</text>
+  <line x1="1060" y1="165" x2="1150" y2="280" class="line"/><line x1="1060" y1="435" x2="1150" y2="340" class="line"/>
+  <text x="60" y="610" class="body">Boundary: this repo does not scrape or clean raw data. It models already-cleaned CityPulse ETL records for reliable analysis.</text>
+  <text x="60" y="640" class="body">Expected upstream contract: public.service_requests contains request id, timestamps, borough, request type, status, resolution fields, and priority flag.</text>
+</svg>

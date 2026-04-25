@@ -1,22 +1,13 @@
 # Capstone Design Notes
 
-This project is scoped as a compact analytics warehouse rather than a broad enterprise system.
+This project is intentionally scoped around one analytical domain: municipal service requests. The important design work is not the size of the data, but the correctness of the warehouse model.
 
-## Design goals
+Key decisions:
 
-1. Build on the CityPulse ETL pipeline instead of duplicating ingestion work.
-2. Model cleaned records into a dimensional structure.
-3. Preserve clear table grain and lineage.
-4. Create reporting marts tied to realistic civic analytics questions.
-5. Keep the implementation understandable enough to explain in an interview or capstone presentation.
+1. Use a staging schema to isolate upstream ETL records from warehouse logic.
+2. Define the fact table grain before creating marts.
+3. Use dimensions for date, location, request type, and status so that reporting queries are consistent.
+4. Add explicit constraints and quality checks so table relationships are testable.
+5. Keep the orchestration simple enough to explain line by line in an interview.
 
-## Tradeoffs
-
-- PostgreSQL was chosen because it is accessible locally and supports schemas, materialized views, indexes, and constraints.
-- SQL scripts were used instead of dbt or Airflow to keep the project explainable without adding orchestration complexity.
-- The SCD2 implementation is a focused example rather than a full production change-data-capture system.
-- Marts are intentionally limited to operational reporting questions rather than an exhaustive dashboard catalog.
-
-## What I would improve next
-
-The next version would add dbt models, dbt tests, a dashboard layer, and a scheduled refresh job.
+The project can be extended with dbt, Airflow, late-arriving updates, and dashboard deployment, but the current version focuses on the fundamentals of warehouse modeling.

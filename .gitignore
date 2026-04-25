@@ -10,3 +10,8 @@ Thumbs.db
 .idea/
 *.db
 *.sqlite
+
+# Local build artifacts
+.cache/
+__pycache__/
+*.log

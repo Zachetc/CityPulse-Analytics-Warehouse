@@ -1,31 +1,20 @@
 # CityPulse Analytics Warehouse
 
-CityPulse Analytics Warehouse is a PostgreSQL dimensional warehouse that extends the CityPulse ETL pipeline. The ETL project prepares cleaned municipal service request records; this warehouse turns those records into fact tables, dimensions, quality checks, and reporting marts that answer operational analytics questions.
+CityPulse Analytics Warehouse is a PostgreSQL dimensional warehouse that extends the CityPulse ETL pipeline. The upstream CityPulse ETL project ingests and cleans municipal service request data; this repository models that cleaned output into staging tables, conformed dimensions, an event-level fact table, quality checks, and reporting marts.
 
-The project is intentionally scoped as a serious capstone-style analytics engineering system. It is not a generic “enterprise” warehouse. It focuses on one clearly defined domain: civic service request operations.
-
-## Analytical Questions
-
-The warehouse is designed to answer questions such as:
-
-- Which service categories create the highest monthly workload?
-- Which boroughs or locations have the longest resolution times?
-- How many open, closed, and escalated requests exist by month?
-- Which request types show seasonal spikes?
-- How do priority requests compare to standard requests over time?
-- Which reporting marts would be useful for a public operations dashboard?
+The goal is not to make a decorative warehouse demo. The goal is to show the mechanics of an analytics engineering system: table grain, schema boundaries, lineage, incremental loading, dimensional joins, and mart-level outputs tied to specific analytical questions.
 
 ## System Boundary
 
-This repository starts where the CityPulse ETL pipeline ends.
+This repository starts after CityPulse ETL has loaded cleaned records into PostgreSQL.
 
-CityPulse ETL is responsible for ingestion, cleaning, and validation. This repository assumes the ETL has loaded cleaned records into PostgreSQL as:
+Expected upstream table:
 
 ```sql
 public.service_requests
 ```
 
-This warehouse then builds:
+Warehouse output layers:
 
 ```text
 staging.service_requests
@@ -40,54 +29,60 @@ marts.priority_request_trends
 marts.open_request_backlog
 ```
 
-## Lineage Overview
+## What the Warehouse Answers
 
-![CityPulse Lineage Flow](assets/citypulse_lineage_flow.png)
+The reporting layer is designed around operational analytics questions:
 
-The lineage diagram shows the actual boundary between the upstream CityPulse ETL pipeline and this warehouse. The warehouse does not scrape or clean raw records. It imports cleaned ETL output, standardizes it into staging, builds dimensions and facts, and exposes reporting marts.
+- Which request types create the largest monthly workload?
+- Which boroughs have the slowest response times?
+- How does priority-request volume change over time?
+- Which request categories create the largest open backlog?
+- Which dimensions are needed to support consistent dashboard metrics?
 
-## Star Schema and Grain
+## Data Lineage
 
-![Star Schema Grain Definition](assets/star_schema_grain_definition.png)
+![Data Lineage Pipeline](assets/data_lineage_pipeline.svg)
 
-The fact table grain is:
+The lineage diagram shows the actual dependency boundary: CityPulse ETL loads cleaned records, this warehouse imports those records into staging, and the dimensional layer creates fact and dimension tables for reporting.
+
+## Dimensional Model
+
+![Star Schema Relationships](assets/star_schema_relationships.svg)
+
+The warehouse uses a star schema. The fact table grain is:
 
 > one row per service request event
 
-This matters because every metric in the reporting layer depends on that grain. Request counts, backlog counts, average resolution time, and priority trends all aggregate from the same event-level fact table.
-
-## Schema Dependency Graph
-
-![Schema Dependency Graph](assets/schema_dependency_graph.png)
-
-The dependency graph shows how dimensions feed the fact table and how marts depend on both the fact table and dimensions. This is more useful than a generic architecture diagram because it explains which tables must be built first.
+This grain is important because every mart aggregates from the same event-level table. Request counts, backlog counts, priority-rate calculations, and response-time metrics all come from the same consistent base.
 
 ## Incremental Load Strategy
 
-![Incremental Load Strategy](assets/incremental_load_strategy.png)
+![Incremental Load Logic](assets/incremental_load_logic.svg)
 
-The warehouse includes an append-safe incremental loading pattern. Existing request IDs are not reinserted into the fact table, which allows repeated refreshes without duplicating historical events.
+The incremental load example uses request-level duplicate protection. New staging records are inserted into the fact table only when their `request_id` does not already exist in `warehouse.fact_service_requests`.
 
-## Reporting Mart Pipeline
+This is intentionally simple and explainable: it demonstrates the main idea behind append-safe warehouse refreshes without introducing a full orchestration framework.
 
-![Reporting Mart Pipeline](assets/reporting_mart_pipeline.png)
+## Reporting Mart Dependencies
 
-The marts are organized around operational questions: volume, backlog, response time, and priority workload. They are designed to support dashboards or analyst queries without requiring users to join the full dimensional model manually.
+![Reporting Mart Dependencies](assets/reporting_mart_dependencies.svg)
+
+The mart layer converts the dimensional model into business-ready tables for common analysis patterns: monthly volume, response time distributions, priority trends, and open backlog.
 
 ## Repository Structure
 
 ```text
 CityPulse-Analytics-Warehouse/
-├── assets/                         # Meaningful diagrams and schema visuals
-├── docs/                           # Explanation, lineage, grain, and interview notes
-├── scripts/                        # Build scripts and sample data utilities
+├── assets/                         # Four high-information diagrams
+├── docs/                           # Grain, lineage, modeling, and interview notes
+├── scripts/                        # Build scripts and sample-data utilities
 ├── sql/
-│   ├── integration/                # Imports CityPulse ETL output into staging
+│   ├── integration/                # Import cleaned CityPulse ETL output
 │   ├── staging/                    # Staging schema setup
 │   ├── warehouse/                  # Dimensions, fact table, constraints, SCD2 example
 │   ├── incremental/                # Incremental fact load pattern
-│   ├── marts/                      # Reporting marts and materialized views
-│   ├── quality/                    # Data quality checks
+│   ├── marts/                      # Reporting marts/materialized views
+│   ├── quality/                    # Data quality, grain, and integrity checks
 │   └── analytics/                  # Example analyst queries
 ├── docker-compose.yml
 └── README.md
@@ -101,7 +96,7 @@ Start PostgreSQL:
 docker compose up -d
 ```
 
-Run the integrated warehouse build after CityPulse ETL has loaded `public.service_requests`:
+Run the integrated build after CityPulse ETL has loaded `public.service_requests`:
 
 ```powershell
 scripts\run_full_lineage_build.ps1
@@ -115,62 +110,54 @@ psql -h localhost -U citypulse -d citypulse -f sql/run_citypulse_integrated_buil
 
 ## Build Order
 
-The integrated build follows this order:
-
 ```text
 1. Create staging schema
 2. Import cleaned CityPulse ETL records from public.service_requests
 3. Create warehouse dimensions
-4. Create fact_service_requests
-5. Add constraints
-6. Run incremental fact load example
+4. Create warehouse fact table
+5. Add primary/foreign key constraints
+6. Demonstrate incremental fact loading logic
 7. Create reporting marts
-8. Run data quality checks
+8. Run data quality and integrity checks
 ```
-
-## Warehouse Design Decisions
-
-- The warehouse uses a star schema because the main analytical need is aggregation by date, location, request type, and status.
-- Staging exists to isolate ETL output from warehouse logic.
-- The fact table stores event-level service request records.
-- Reporting marts are materialized views to make repeated analytics queries simpler.
-- Incremental loading is demonstrated with request-level duplicate protection.
-- SCD Type 2 logic is included as an example for tracking changes in location attributes over time.
 
 ## Key SQL Artifacts
 
 | File | Purpose |
 |---|---|
-| `sql/integration/import_from_citypulse_etl.sql` | Imports the ETL output into staging |
+| `sql/integration/import_from_citypulse_etl.sql` | Imports the upstream ETL output into staging |
 | `sql/warehouse/create_dimensions.sql` | Builds date, location, request type, and status dimensions |
 | `sql/warehouse/create_fact_service_requests.sql` | Builds the event-level fact table |
-| `sql/warehouse/add_constraints.sql` | Adds primary and foreign key constraints |
+| `sql/warehouse/add_constraints.sql` | Adds primary/foreign key relationships and integrity constraints |
 | `sql/incremental/load_fact_incremental.sql` | Demonstrates append-safe fact loading |
-| `sql/warehouse/scd2_dim_location.sql` | Demonstrates slowly changing dimension logic |
-| `sql/marts/create_reporting_views.sql` | Creates reporting marts |
-| `sql/quality/data_quality_checks.sql` | Runs quality checks against staging and warehouse layers |
+| `sql/warehouse/scd2_dim_location.sql` | Shows a focused SCD Type 2 location-history pattern |
+| `sql/marts/create_reporting_views.sql` | Creates operational reporting marts |
+| `sql/quality/data_quality_checks.sql` | Runs staging, warehouse, and mart quality checks |
+| `sql/quality/grain_validation.sql` | Verifies fact-table grain is not violated |
+| `sql/quality/dimension_integrity_checks.sql` | Checks fact-to-dimension conformance |
 
-## Why This Project Exists
+## Design Decisions
 
-I built this as a downstream analytics layer for my CityPulse ETL pipeline. The ETL project handles ingestion and cleaning; this project focuses on analytical modeling, lineage, and reporting readiness.
-
-The goal is to show that I understand not just how to move data, but how to structure it so analysts and decision-makers can query it reliably.
+- Staging isolates upstream ETL output from warehouse modeling logic.
+- The warehouse uses surrogate keys in dimensions but keeps `request_id` as the fact-table natural event identifier.
+- Reporting marts are materialized views because the same aggregations would be reused by dashboards or analysts.
+- Incremental loading is demonstrated with request-level duplicate protection rather than a complex orchestration tool.
+- The SCD2 script is included as a focused design example for tracking changes in descriptive dimension attributes.
 
 ## Limitations
 
-- The project uses a local PostgreSQL environment rather than a managed cloud warehouse.
-- The SCD2 logic is included as a focused example, not a full production dimension management framework.
-- The mart layer is intentionally small and tied to a single domain.
-- The pipeline is SQL-script orchestrated rather than Airflow-managed.
+- The warehouse runs locally in PostgreSQL rather than a managed cloud warehouse.
+- The incremental example is append-focused and does not implement late-arriving updates.
+- The SCD2 script demonstrates the concept but is not a full production dimension-management framework.
+- The project is SQL-script orchestrated rather than Airflow/dbt managed.
 
 ## Future Improvements
 
-- Add Airflow or Prefect orchestration
 - Add dbt models and tests
-- Add dashboard layer with Metabase or Streamlit
-- Add CI checks for SQL linting
-- Add seed data generation for larger scale testing
-- Add role-based schemas for analyst and admin access
+- Add Airflow or Prefect orchestration
+- Add late-arriving record handling
+- Add CI checks for SQL syntax and data-quality tests
+- Add a dashboard layer using Metabase, Superset, or Streamlit
 
 ## Author
 

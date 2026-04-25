@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+  <style>text{font-family:Arial,sans-serif;fill:#111}.title{font-size:24px;font-weight:bold}.box-title{font-size:17px;font-weight:bold}.body{font-size:14px}.box{fill:#f8f9fa;stroke:#222;stroke-width:2}.line{stroke:#222;stroke-width:2;marker-end:url(#arrow)}</style>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#222"/></marker></defs>
+  <text x="40" y="45" class="title">Incremental Load Logic: Append New Requests Without Duplicating Facts</text>
+  <rect x="70" y="170" width="260" height="150" rx="10" class="box"/><text x="90" y="205" class="box-title">New ETL batch</text><text x="90" y="240" class="body">public.service_requests</text><text x="90" y="265" class="body">old + new records possible</text>
+  <rect x="430" y="170" width="280" height="150" rx="10" class="box"/><text x="450" y="205" class="box-title">staging.service_requests</text><text x="450" y="240" class="body">normalize types</text><text x="450" y="265" class="body">check duplicate request_id</text>
+  <rect x="820" y="90" width="310" height="150" rx="10" class="box"/><text x="840" y="125" class="box-title">Existing fact table</text><text x="840" y="160" class="body">warehouse.fact_service_requests</text><text x="840" y="185" class="body">PK: request_id</text>
+  <rect x="820" y="390" width="310" height="170" rx="10" class="box"/><text x="840" y="425" class="box-title">Incremental INSERT</text><text x="840" y="460" class="body">WHERE NOT EXISTS</text><text x="840" y="485" class="body">match on request_id</text><text x="840" y="510" class="body">insert only unseen events</text>
+  <rect x="1210" y="280" width="160" height="150" rx="10" class="box"/><text x="1230" y="315" class="box-title">Marts</text><text x="1230" y="350" class="body">refresh views</text><text x="1230" y="375" class="body">update dashboards</text>
+  <line x1="330" y1="245" x2="430" y2="245" class="line"/><line x1="710" y1="245" x2="820" y2="475" class="line"/><line x1="975" y1="240" x2="975" y2="390" class="line"/><text x="990" y="315" class="body">lookup request_id</text><line x1="1130" y1="475" x2="1210" y2="355" class="line"/>
+  <text x="70" y="640" class="body">Core rule: the fact table grain is one row per service request event, so request_id is the de-duplication key.</text>
+  <text x="70" y="670" class="body">Quality gates verify duplicate IDs, orphaned keys, missing timestamps, and negative resolution hours.</text>
+</svg>

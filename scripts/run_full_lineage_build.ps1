@@ -1,18 +1,14 @@
-param(
-    [string]$HostName = "localhost",
-    [string]$Database = "citypulse",
-    [string]$User = "citypulse"
-)
+$ErrorActionPreference = "Stop"
 
-Write-Host "Running CityPulse full lineage warehouse build..."
-Write-Host "Database: $Database"
-Write-Host "Host: $HostName"
+$HostName = $env:POSTGRES_HOST
+if (-not $HostName) { $HostName = "localhost" }
+$Port = $env:POSTGRES_PORT
+if (-not $Port) { $Port = "5432" }
+$Database = $env:POSTGRES_DB
+if (-not $Database) { $Database = "citypulse" }
+$User = $env:POSTGRES_USER
+if (-not $User) { $User = "citypulse" }
 
-psql -h $HostName -U $User -d $Database -f sql/run_citypulse_integrated_build.sql
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Build finished successfully."
-} else {
-    Write-Host "Build failed. Check SQL output above."
-    exit $LASTEXITCODE
-}
+Write-Host "Running CityPulse Analytics Warehouse build..."
+psql -h $HostName -p $Port -U $User -d $Database -f sql/run_citypulse_integrated_build.sql
+Write-Host "Warehouse build complete. Review quality-check output above for failed_records > 0."

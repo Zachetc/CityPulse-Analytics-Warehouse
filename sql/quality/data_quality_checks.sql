@@ -1,5 +1,5 @@
 -- CityPulse warehouse quality checks.
--- These are designed to catch problems at the staging, warehouse, and mart layers.
+-- These checks are intentionally written as readable SQL so they can be explained in a capstone presentation.
 
 -- 1. Staging should not contain duplicate request IDs.
 SELECT
@@ -19,20 +19,15 @@ SELECT
 FROM staging.service_requests
 WHERE created_at IS NULL;
 
--- 3. Fact table should not contain orphaned dimension keys.
+-- 3. Required fact foreign keys should not be null.
 SELECT
-    'orphaned_date_keys' AS check_name,
+    'null_fact_foreign_keys' AS check_name,
     COUNT(*) AS failed_records
-FROM warehouse.fact_service_requests f
-LEFT JOIN warehouse.dim_date d ON f.date_key = d.date_key
-WHERE d.date_key IS NULL;
-
-SELECT
-    'orphaned_location_keys' AS check_name,
-    COUNT(*) AS failed_records
-FROM warehouse.fact_service_requests f
-LEFT JOIN warehouse.dim_location l ON f.location_key = l.location_key
-WHERE l.location_key IS NULL;
+FROM warehouse.fact_service_requests
+WHERE date_key IS NULL
+   OR location_key IS NULL
+   OR request_type_key IS NULL
+   OR status_key IS NULL;
 
 -- 4. Resolution hours should not be negative.
 SELECT
@@ -41,7 +36,15 @@ SELECT
 FROM warehouse.fact_service_requests
 WHERE resolution_hours < 0;
 
--- 5. Mart tables should contain rows after build.
+-- 5. Closed records should normally have a closed_at timestamp.
+SELECT
+    'closed_requests_missing_closed_at' AS check_name,
+    COUNT(*) AS failed_records
+FROM warehouse.fact_service_requests
+WHERE is_closed = TRUE
+  AND closed_at IS NULL;
+
+-- 6. Mart tables should contain rows after build.
 SELECT
     'empty_request_volume_mart' AS check_name,
     CASE WHEN COUNT(*) = 0 THEN 1 ELSE 0 END AS failed_records

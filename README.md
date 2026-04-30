@@ -6,7 +6,7 @@ The goal is not to make a decorative warehouse demo. The goal is to show the mec
 
 ## System Boundary
 
-This repository starts after CityPulse ETL has loaded cleaned records into PostgreSQL.
+This repository starts after CityPulse ETL has loaded and cleaned records into PostgreSQL.
 
 Expected upstream table:
 
